@@ -4,6 +4,7 @@
 , doom
 , git
 , emacs
+, sha256 ? null
 }:
 
 stdenv.mkDerivation {
@@ -23,14 +24,23 @@ stdenv.mkDerivation {
   '';
 
   buildPhase = ''
+    runHook preBuild
+
     mkdir $out
     cp -r . $out
     bin/doom sync
+
+    runHook postBuild
   '';
 
-  # The hash always change, so we can't set the output hash for now
-  __impure = true;
-  # outputHash = "...";
+  # Removing sources of impurity
+  preFixup = ''
+    find $out/.local/straight/repos -name '.git' -type d -exec rm -rf '{}' +
+    rm -rf $out/.local/straight/build-*-cache.el
+  '';
+
+  __impure = if (sha256 == null) then true else false;
+  outputHash = sha256;
   outputHashAlgo = "sha256";
   outputHashMode = "recursive";
 }
